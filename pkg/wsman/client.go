@@ -5,6 +5,7 @@
 package wsman
 
 import (
+	"bufio"
 	"bytes"
 	"crypto/tls"
 	"fmt"
@@ -100,10 +101,23 @@ func (c *Client) Post(msg string) (response []byte, err error) {
 		b, _ := io.ReadAll(res.Body)
 		return nil, fmt.Errorf("wsman.Client: post received %v\n'%v'", res.Status, string(b))
 	}
-	response, err = io.ReadAll(res.Body)
+	reader := bufio.NewReader(res.Body)
+	doThis := true
+	for doThis {
+		// Read the next chunk
+		data, err := reader.ReadBytes('\n')
+		if err != nil {
+			response = data
+			fmt.Println("response :", string(response))
+			if err == io.EOF {
+				doThis = false
+			}
+		} else {
+			fmt.Printf("\nGot some data:\n\t%v", string(data))
+		}
+	}
 	if err != nil {
 		return nil, err
 	}
-
 	return response, nil
 }
